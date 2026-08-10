@@ -70,7 +70,7 @@ pending_uploads = {}
 main_chat_id = None
 telegram_app = None
 
-# ─── 🔄 GITHUB AUTO-SYNC FUNCTION ───
+# ─── 🔄 GITHUB AUTO-SYNC FUNCTION (UPDATED WITH TIMESTAMP) ───
 def sync_status_to_github():
     """สร้าง status.json และ Git Push ขึ้น GitHub Pages อัตโนมัติ"""
     try:
@@ -89,7 +89,8 @@ def sync_status_to_github():
             short_name = extract_display_name(key, platform)
             active_list.append({
                 "username": short_name,
-                "platform": info.get("platform", "Live")
+                "platform": info.get("platform", "Live"),
+                "start_timestamp": info.get("start_timestamp", time.time()) # <--- ส่ง Timestamp ไปให้ Mini App คำนวณเวลาเดินหน้า
             })
 
         total_files = len(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else 0
