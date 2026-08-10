@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1786366251.9982383
-    },
-    {
       "username": "c0505250",
       "platform": "TikTok",
       "start_timestamp": 1786366291.6794991
@@ -85,5 +80,5 @@
     "helena19975",
     "peggyxtann"
   ],
-  "total_recordings": 61
+  "total_recordings": 60
 }
