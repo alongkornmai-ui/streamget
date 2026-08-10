@@ -1,300 +1,280 @@
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>RecTok Dashboard</title>
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Platform Live Recorder</title>
     <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent-color: #fe2c55; /* TikTok Red */
-            --accent-green: #25d366;
-            --text-color: #ffffff;
-            --text-sub: #aaaaaa;
-            --border-color: #2a2a2a;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: #121212; color: #ffffff; padding: 20px; padding-bottom: 80px; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        .title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: bold; }
+        .dot { width: 14px; height: 14px; background-color: #ff3b30; border-radius: 50%; box-shadow: 0 0 10px rgba(255, 59, 48, 0.8); }
+        .refresh-btn { background: #2c2c2e; border: none; padding: 8px; border-radius: 50%; color: #fff; cursor: pointer; }
+        .hero { margin-bottom: 20px; }
+        .hero h1 { font-size: 1.8rem; margin-bottom: 5px; }
+        .hero p { color: #8e8e93; font-size: 0.9rem; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+        .card { background-color: #1c1c1e; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #2c2c2e; }
+        .card-title { font-size: 0.85rem; color: #8e8e93; margin-bottom: 12px; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 16px;
-            padding-bottom: 80px;
-        }
+        .input-group { display: flex; gap: 10px; margin-top: 10px; }
+        .input-group input { flex: 1; background-color: #2c2c2e; border: none; border-radius: 10px; padding: 12px 16px; color: #fff; font-size: 0.95rem; outline: none; }
+        .input-group button { background-color: #ffffff; color: #000000; border: none; border-radius: 10px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
 
-        /* Header */
-        .header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
+        .activity-item, .watchlist-item { display: flex; align-items: center; justify-content: space-between; background-color: #2c2c2e; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
+        .activity-user, .user-info { display: flex; align-items: center; gap: 12px; }
+        .avatar { width: 40px; height: 40px; background-color: #3a3a3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .username { font-weight: 600; font-size: 0.95rem; }
+        .badge-rec { background-color: rgba(255, 59, 48, 0.2); color: #ff3b30; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; display: inline-block; margin-top: 4px; }
+        .timer { font-family: monospace; font-size: 0.95rem; color: #34c759; font-weight: bold; background: rgba(52, 199, 89, 0.1); padding: 4px 8px; border-radius: 6px; }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+        .status-tag { font-size: 0.75rem; color: #8e8e93; margin-top: 2px; }
+        .status-tag.live { color: #ff3b30; font-weight: bold; }
+        .btn-remove { background-color: rgba(255, 59, 48, 0.15); color: #ff3b30; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
 
-        .brand-icon {
-            font-size: 24px;
-        }
+        .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .stat-box { background-color: #1c1c1e; border-radius: 16px; padding: 16px; text-align: center; border: 1px solid #2c2c2e; }
+        .stat-num { font-size: 1.8rem; font-weight: bold; margin-bottom: 4px; }
+        .stat-label { font-size: 0.75rem; color: #8e8e93; }
 
-        .brand-title {
-            font-size: 18px;
-            font-weight: bold;
-        }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1c1c1e; border-top: 1px solid #2c2c2e; display: flex; justify-content: space-around; padding: 10px 0; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8e8e93; font-size: 0.75rem; text-decoration: none; cursor: pointer; background: none; border: none; }
+        .nav-item.active { color: #ffffff; }
 
-        /* Profile Greeting */
-        .greeting {
-            margin-bottom: 20px;
-        }
-
-        .greeting h2 {
-            font-size: 22px;
-        }
-
-        .greeting p {
-            color: var(--text-sub);
-            font-size: 14px;
-        }
-
-        /* Card Section */
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-        }
-
-        .card-title {
-            font-size: 14px;
-            color: var(--text-sub);
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        /* Input Form */
-        .input-group {
-            display: flex;
-            gap: 8px;
-        }
-
-        input[type="text"] {
-            flex: 1;
-            background-color: #2a2a2a;
-            border: 1px solid #333;
-            border-radius: 8px;
-            padding: 12px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-        }
-
-        input[type="text"]:focus {
-            border-color: var(--accent-color);
-        }
-
-        .btn {
-            background-color: #ffffff;
-            color: #000000;
-            border: none;
-            border-radius: 8px;
-            padding: 0 16px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: opacity 0.2s;
-        }
-
-        .btn:active {
-            opacity: 0.8;
-        }
-
-        .btn-danger {
-            background-color: var(--accent-color);
-            color: #fff;
-        }
-
-        /* Activity / Notice */
-        .empty-state {
-            text-align: center;
-            color: var(--text-sub);
-            font-size: 14px;
-            padding: 12px 0;
-        }
-
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-        }
-
-        .stat-box {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 12px;
-            text-align: left;
-        }
-
-        .stat-value {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 4px;
-        }
-
-        .stat-label {
-            font-size: 11px;
-            color: var(--text-sub);
-        }
-
-        /* Bottom Nav */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: #1a1a1a;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-        }
-
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-sub);
-            font-size: 11px;
-            text-decoration: none;
-            gap: 4px;
-        }
-
-        .nav-item.active {
-            color: var(--accent-color);
-        }
-
-        .nav-icon {
-            font-size: 18px;
-        }
+        .empty-state { text-align: center; color: #8e8e93; padding: 20px 0; font-size: 0.9rem; }
+        
+        .page-content { display: none; }
+        .page-content.active { display: block; }
     </style>
 </head>
 <body>
 
     <!-- Header -->
     <div class="header">
-        <div class="brand">
-            <span class="brand-icon">📹</span>
-            <span class="brand-title">RecTok Engine</span>
+        <div class="title">
+            <div class="dot"></div>
+            <span id="headerTitle">Multi-Platform Live Recorder</span>
+        </div>
+        <button class="refresh-btn" onclick="fetchStatus()">🔄</button>
+    </div>
+
+    <!-- PAGE 1: HOME PAGE -->
+    <div id="pageHome" class="page-content active">
+        <div class="hero">
+            <h1>Hi User</h1>
+            <p>Record a TikTok LIVE or check status in real-time.</p>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Quick Record</div>
+            <div class="input-group">
+                <input type="text" id="recordInputHome" placeholder="@username or URL">
+                <button onclick="addWatchlist('recordInputHome')">Record</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Activity (Live Updating...)</div>
+            <div id="activityContainer">
+                <div class="empty-state">Loading activity...</div>
+            </div>
+        </div>
+
+        <div class="hero">
+            <p style="font-weight: bold; color: #fff; margin-bottom: 10px;">Overview</p>
+            <div class="overview-grid">
+                <div class="stat-box">
+                    <div class="stat-num" id="totalRecordings">0</div>
+                    <div class="stat-label">Recordings</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="activeCount">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-num" id="watchlistCount">0</div>
+                    <div class="stat-label">Watchlist</div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Greeting -->
-    <div class="greeting">
-        <h2 id="user-greeting">Hi Streamer</h2>
-        <p>Record a LIVE or add to watchlist.</p>
-    </div>
+    <!-- PAGE 2: WATCHLIST PAGE -->
+    <div id="pageWatchlist" class="page-content">
+        <div class="hero">
+            <h1>Watchlist Status</h1>
+            <p>Manage users you want to record automatically.</p>
+        </div>
 
-    <!-- Quick Record -->
-    <div class="card">
-        <div class="card-title">Quick record</div>
-        <div class="input-group">
-            <input type="text" id="target-input" placeholder="@username or URL">
-            <button class="btn" onclick="sendAction('RECORD')">Record</button>
+        <div class="card">
+            <div class="card-title">Add To Watchlist</div>
+            <div class="input-group">
+                <input type="text" id="recordInputWatchlist" placeholder="@username">
+                <button onclick="addWatchlist('recordInputWatchlist')">Add</button>
+            </div>
         </div>
-    </div>
 
-    <!-- Add Watchlist -->
-    <div class="card">
-        <div class="card-title">Add to Watchlist</div>
-        <div class="input-group">
-            <input type="text" id="watchlist-input" placeholder="@username or URL">
-            <button class="btn btn-danger" onclick="sendAction('ADD_WATCHLIST')">Add</button>
-        </div>
-    </div>
-
-    <!-- Overview Stats -->
-    <div class="card-title" style="margin-left: 4px;">Overview</div>
-    <div class="stats-grid">
-        <div class="stat-box">
-            <div class="stat-value">Ready</div>
-            <div class="stat-label">System</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">24/7</div>
-            <div class="stat-label">Auto-Scan</div>
-        </div>
-        <div class="stat-box">
-            <div class="stat-value">Telegram</div>
-            <div class="stat-label">Upload</div>
+        <div class="card">
+            <div class="card-title">Creators Status (<span id="countText">0</span>)</div>
+            <div id="watchlistContainer">
+                <div class="empty-state">Loading watchlist...</div>
+            </div>
         </div>
     </div>
 
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
-        <div class="nav-item active">
-            <span class="nav-icon">🏠</span>
+        <button id="navHome" class="nav-item active" onclick="switchPage('home')">
+            <span>🏠</span>
             <span>Home</span>
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">📋</span>
+        </button>
+        <button id="navWatchlist" class="nav-item" onclick="switchPage('watchlist')">
+            <span>📺</span>
             <span>Watchlist</span>
-        </div>
-        <div class="nav-item">
-            <span class="nav-icon">📁</span>
-            <span>Library</span>
-        </div>
+        </button>
     </div>
 
     <script>
-        // Initialize Telegram WebApp
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // ขยายหน้าจอให้เต็ม Telegram
+        let localActiveMap = {}; 
 
-        // ดึงชื่อผู้ใช้ Telegram มาแสดงคำทักทาย
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            document.getElementById('user-greeting').innerText = `Hi ${tg.initDataUnsafe.user.first_name}`;
+        function switchPage(page) {
+            document.getElementById('pageHome').classList.remove('active');
+            document.getElementById('pageWatchlist').classList.remove('active');
+            document.getElementById('navHome').classList.remove('active');
+            document.getElementById('navWatchlist').classList.remove('active');
+
+            if (page === 'home') {
+                document.getElementById('pageHome').classList.add('active');
+                document.getElementById('navHome').classList.add('active');
+                document.getElementById('headerTitle').innerText = 'Multi-Platform Live Recorder';
+            } else {
+                document.getElementById('pageWatchlist').classList.add('active');
+                document.getElementById('navWatchlist').classList.add('active');
+                document.getElementById('headerTitle').innerText = 'Watchlist';
+            }
         }
 
-        // ฟังก์ชันสำหรับส่งข้อมูลกลับไปยัง Telegram Bot (run.py)
-        function sendAction(actionType) {
-            let inputVal = "";
-            
-            if (actionType === 'RECORD') {
-                inputVal = document.getElementById('target-input').value.trim();
-            } else if (actionType === 'ADD_WATCHLIST') {
-                inputVal = document.getElementById('watchlist-input').value.trim();
-            }
-
-            if (!inputVal) {
-                alert("กรุณากรอก Username หรือ ลิงก์ก่อนครับ!");
-                return;
-            }
-
-            // จัดรูปแบบแพ็กเป็น JSON
-            const payload = {
-                action: actionType,
-                value: inputVal
-            };
-
-            // ส่งข้อมูลหา Telegram Bot และปิดหน้า WebApp
-            tg.sendData(JSON.stringify(payload));
+        function formatTime(seconds) {
+            let h = Math.floor(seconds / 3600);
+            let m = Math.floor((seconds % 3600) / 60);
+            let s = Math.floor(seconds % 60);
+            return (h > 0 ? h + 'h ' : '') + String(m).padStart(2, '0') + 'm ' + String(s).padStart(2, '0') + 's';
         }
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('api.php?action=get_status');
+                const data = await res.json();
+
+                const watchlist = data.watchlist || [];
+                const activeList = data.active_list || [];
+                const activeUsernames = activeList.map(a => a.username.toLowerCase());
+
+                // Overview Stats
+                document.getElementById('totalRecordings').innerText = data.total_recordings || 0;
+                document.getElementById('activeCount').innerText = activeList.length;
+                document.getElementById('watchlistCount').innerText = watchlist.length;
+                document.getElementById('countText').innerText = watchlist.length;
+
+                // Render Home Activity
+                const actContainer = document.getElementById('activityContainer');
+                if (activeList.length === 0) {
+                    actContainer.innerHTML = '<div class="empty-state">Nothing is recording right now.</div>';
+                    localActiveMap = {};
+                } else {
+                    let html = '';
+                    let newMap = {};
+                    activeList.forEach(item => {
+                        const name = item.username;
+                        const initial = name.charAt(0).toUpperCase();
+                        let currentElapsed = localActiveMap[name] !== undefined ? localActiveMap[name] : (item.elapsed || 0);
+                        newMap[name] = currentElapsed;
+
+                        html += `
+                            <div class="activity-item">
+                                <div class="activity-user">
+                                    <div class="avatar">${initial}</div>
+                                    <div>
+                                        <div class="username">@${name}</div>
+                                        <span class="badge-rec">RECORDING</span>
+                                    </div>
+                                </div>
+                                <div class="timer" id="timer-${name}">${formatTime(currentElapsed)}</div>
+                            </div>
+                        `;
+                    });
+                    actContainer.innerHTML = html;
+                    localActiveMap = newMap;
+                }
+
+                // Render Watchlist Page
+                const wlContainer = document.getElementById('watchlistContainer');
+                if (watchlist.length === 0) {
+                    wlContainer.innerHTML = '<div class="empty-state">No users in Watchlist.</div>';
+                } else {
+                    let htmlWL = '';
+                    watchlist.forEach(user => {
+                        const initial = user.charAt(0).toUpperCase();
+                        const isLive = activeUsernames.includes(user.toLowerCase());
+
+                        htmlWL += `
+                            <div class="watchlist-item">
+                                <div class="user-info">
+                                    <div class="avatar">${initial}</div>
+                                    <div>
+                                        <div class="username">@${user}</div>
+                                        <div class="status-tag ${isLive ? 'live' : ''}">${isLive ? '🔴 Recording...' : 'Monitoring...'}</div>
+                                    </div>
+                                </div>
+                                <button class="btn-remove" onclick="removeWatchlist('${user}')">Remove</button>
+                            </div>
+                        `;
+                    });
+                    wlContainer.innerHTML = htmlWL;
+                }
+
+            } catch (err) {
+                console.error("Error fetching status:", err);
+            }
+        }
+
+        // ลบไฟล์ watchlist.html เดิมทิ้งได้เลย
+        async function addWatchlist(inputId) {
+            const input = document.getElementById(inputId);
+            const val = input.value.trim();
+            if (!val) return;
+
+            const formData = new FormData();
+            formData.append('username', val);
+
+            await fetch('api.php?action=add_watchlist', { method: 'POST', body: formData });
+            input.value = '';
+            fetchStatus();
+        }
+
+        async function removeWatchlist(username) {
+            if (!confirm(`Do you want to remove @${username} from Watchlist?`)) return;
+
+            const formData = new FormData();
+            formData.append('username', username);
+
+            await fetch('api.php?action=remove_watchlist', { method: 'POST', body: formData });
+            fetchStatus();
+        }
+
+        setInterval(() => {
+            for (let name in localActiveMap) {
+                localActiveMap[name]++;
+                const timerElem = document.getElementById(`timer-${name}`);
+                if (timerElem) {
+                    timerElem.innerText = formatTime(localActiveMap[name]);
+                }
+            }
+        }, 1000);
+
+        setInterval(fetchStatus, 3000);
+        fetchStatus();
     </script>
 </body>
 </html>

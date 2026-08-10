@@ -8,10 +8,14 @@ import shutil
 import re
 import math
 import subprocess
+import threading
+import signal
 from urllib.parse import urlparse
 from datetime import datetime
 from PIL import Image
-from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, Update
+
+# ─── Telegram & Web Server Libraries ───
+from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, Update, WebAppInfo
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -21,6 +25,8 @@ from telegram.ext import (
     filters,
 )
 from telegram.request import HTTPXRequest
+from flask import Flask, jsonify, request
+from flask_cors import CORS
 
 from streamget import (
     TikTokLiveStream,
@@ -37,6 +43,7 @@ logging.basicConfig(level=logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.CRITICAL)
 
 TOKEN = '8583340382:AAGQxoXa5OsKpOQnp3z7JiqbMQGekrvT2O8'
+WEBAPP_URL = "https://restaurants-decide-bubble-just.trycloudflare.com"
 MY_COOKIE = "sessionid=32a62dc94c0c2ca4bce73bbf9b59fcc8;"
 
 TT_WATCHLIST_FILE = "watchlist.json"
@@ -46,6 +53,7 @@ SCAN_INTERVAL = 45
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# Colors for Termux HUD
 CYAN = "\033[96m"
 GREEN = "\033[92m"
 YELLOW = "\033[93m"
@@ -53,23 +61,28 @@ RED = "\033[91m"
 RESET = "\033[0m"
 BOLD = "\033[1m"
 
+# Global Variables
 active_records_info = {}   
 last_check_time = {}       
 active_processes = {}      
 next_scan_timestamp = 0    
 upload_queue = asyncio.Queue()
 pending_uploads = {} 
+main_chat_id = None
+telegram_app = None
 
 # ─── 🔍 HELPER FUNCTIONS ───
 def load_json_list(filename):
     if os.path.exists(filename):
         try:
-            with open(filename, "r") as f: return json.load(f)
+            with open(filename, "r", encoding="utf-8") as f: 
+                return json.load(f)
         except Exception: return []
     return []
 
 def save_json_list(filename, data):
-    with open(filename, "w") as f: json.dump(data, f, indent=4)
+    with open(filename, "w", encoding="utf-8") as f: 
+        json.dump(data, f, indent=4, ensure_ascii=False)
 
 def format_duration(seconds):
     m, s = divmod(int(seconds), 60)
@@ -126,11 +139,10 @@ def generate_sample_grid(video_path, output_grid_path, num_samples=12):
         return False
 
 def extract_display_name(input_str: str, platform: str) -> str:
-    text = input_str.strip()
+    text = str(input_str).strip()
     if platform == "BigoLive":
         match = re.search(r'(?:user/|bigo:|^)(\d+)', text, re.IGNORECASE)
-        if match:
-            return match.group(1)
+        if match: return match.group(1)
         return text.split('/')[-1].split('?')[0]
     elif platform == "TikTok":
         clean_user = text.replace("https://www.tiktok.com/@", "").strip().lstrip('@')
@@ -138,12 +150,11 @@ def extract_display_name(input_str: str, platform: str) -> str:
     else:
         parsed = urlparse(text)
         path = parsed.path.strip('/')
-        if path:
-            return path.split('/')[-1].split('?')[0]
+        if path: return path.split('/')[-1].split('?')[0]
         return text
 
 def get_stream_client_and_url(input_str: str):
-    text = input_str.strip()
+    text = str(input_str).strip()
     if "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
         clean_id = text.lower().replace("bigo:", "").strip()
         target_url = clean_id if clean_id.startswith("http") else f"https://www.bigo.tv/{clean_id}"
@@ -163,15 +174,111 @@ def get_stream_client_and_url(input_str: str):
         target_url = f"https://www.tiktok.com/@{clean_user}/live"
         return TikTokLiveStream(cookies=MY_COOKIE), target_url, "TikTok"
 
-# ─── 🖥️ TERMUX TERMINAL HUD LOOP (COMPACT ONE-LINE DISPLAY) ───
+# ─── 🌐 FLASK API FOR TELEGRAM MINI APP ───
+flask_app = Flask(__name__)
+CORS(flask_app)
+
+@flask_app.route('/api/status', methods=['GET'])
+def api_status():
+    watchlist = load_json_list(TT_WATCHLIST_FILE)
+    records = []
+    now = time.time()
+    for key, info in list(active_records_info.items()):
+        _, _, platform = get_stream_client_and_url(key)
+        short_name = extract_display_name(key, platform)
+        elapsed = int(now - info['start_timestamp'])
+        records.append({
+            "username": short_name,
+            "raw_key": key,
+            "elapsed": elapsed,
+            "platform": info['platform']
+        })
+    
+    total_files = len(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else 0
+    return jsonify({
+        "active_records": records,
+        "watchlist_count": len(watchlist),
+        "total_recordings": total_files
+    })
+
+@flask_app.route('/api/watchlist', methods=['GET', 'POST', 'DELETE'])
+def api_watchlist():
+    watchlist = load_json_list(TT_WATCHLIST_FILE)
+    if request.method == 'GET':
+        result = []
+        for item in watchlist:
+            _, _, platform = get_stream_client_and_url(item)
+            short_name = extract_display_name(item, platform)
+            is_rec = item in active_records_info
+            result.append({
+                "username": short_name, 
+                "raw": item, 
+                "platform": platform, 
+                "status": "🔴 REC" if is_rec else "💤 WAIT"
+            })
+        return jsonify({"watchlist": result})
+    
+    elif request.method == 'POST':
+        data = request.json or {}
+        username = data.get("username", "").strip()
+        if username and username not in watchlist:
+            watchlist.append(username)
+            save_json_list(TT_WATCHLIST_FILE, watchlist)
+            return jsonify({"success": True})
+        return jsonify({"success": False, "message": "Already exists or invalid"})
+
+    elif request.method == 'DELETE':
+        data = request.json or {}
+        username = data.get("username", "").strip()
+        updated = [x for x in watchlist if x != username and extract_display_name(x, get_stream_client_and_url(x)[2]) != username]
+        save_json_list(TT_WATCHLIST_FILE, updated)
+        return jsonify({"success": True})
+
+@flask_app.route('/api/record/start', methods=['POST'])
+def api_record_start():
+    global telegram_app, main_chat_id
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    if username and telegram_app:
+        loop = telegram_app.loop
+        asyncio.run_coroutine_threadsafe(
+            monitor_tt_task(telegram_app, main_chat_id, username), loop
+        )
+        return jsonify({"success": True})
+    return jsonify({"success": False})
+
+@flask_app.route('/api/record/stop', methods=['POST'])
+def api_record_stop():
+    data = request.json or {}
+    username = data.get("username", "").strip()
+    stopped = False
+    for key, proc in list(active_processes.items()):
+        if username in key:
+            try:
+                proc.send_signal(signal.SIGINT)
+            except Exception:
+                try: proc.kill()
+                except Exception: pass
+            active_processes.pop(key, None)
+            active_records_info.pop(key, None)
+            stopped = True
+    return jsonify({"success": stopped})
+
+def run_flask():
+    flask_app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
+# ─── 🖥️ TERMUX TERMINAL HUD LOOP ───
 async def termux_hud_loop():
     while True:
         try:
             watchlist = load_json_list(TT_WATCHLIST_FILE)
+            # รวมรายชื่อที่กำลังอัดอยู่เข้ามาด้วยเพื่อให้แสดงผลครบทุกช่อง
+            all_items = list(dict.fromkeys(watchlist + list(active_records_info.keys())))
+            
             remaining_sec = max(0, int(next_scan_timestamp - time.time())) if next_scan_timestamp > 0 else 0
             now_str = datetime.now().strftime("%H:%M:%S")
 
-            os.system('clear' if os.name == 'posix' else 'cls')
+            print("\033[H\033[J", end="") # Clear screen smoothly
 
             print(f"{CYAN}{BOLD}=================================================={RESET}")
             print(f"{CYAN}{BOLD}       🎬 LIVE STREAM RECORDER - TERMUX HUD       {RESET}")
@@ -179,25 +286,23 @@ async def termux_hud_loop():
             print(f" 🕒 {now_str} | ⏳ Next Scan: {YELLOW}{BOLD}{remaining_sec}s{RESET} | 📁 Watchlist: {len(watchlist)} | 📤 Queue: {upload_queue.qsize()}")
             print(f"{CYAN}--------------------------------------------------{RESET}")
 
-            if not watchlist:
+            if not all_items:
                 print(f" {YELLOW}⚠️ Watchlist is empty. Add targets via Telegram!{RESET}")
             else:
-                for idx, item in enumerate(watchlist, 1):
+                for idx, item in enumerate(all_items, 1):
                     _, _, platform = get_stream_client_and_url(item)
                     short_name = extract_display_name(item, platform)
                     
                     if item in active_records_info:
                         info = active_records_info[item]
                         duration = format_duration(time.time() - info['start_timestamp'])
-                        # แสดงผลบรรทัดเดียวสั้นๆ สำหรับสถานะกำลังอัด
                         print(f" {idx:2d}. {RED}{BOLD}[REC]  🔴 {short_name}{RESET} ({info['platform']}) | ⏱️ {GREEN}{BOLD}{duration}{RESET}")
                     else:
                         chk_time = last_check_time.get(item, "Wait...")
-                        # แสดงผลบรรทัดเดียวสั้นๆ สำหรับสถานะรอ
                         print(f" {idx:2d}. {GREEN}[WAIT] 💤 {short_name}{RESET} ({platform}) | 🕒 {chk_time}")
 
             print(f"{CYAN}--------------------------------------------------{RESET}")
-            print(f" 📊 Active Recording: {RED}{BOLD}{len(active_records_info)}{RESET} | Waiting: {GREEN}{len(watchlist) - len(active_records_info)}{RESET}")
+            print(f" 📊 Active Recording: {RED}{BOLD}{len(active_records_info)}{RESET} | Waiting: {GREEN}{len(all_items) - len(active_records_info)}{RESET}")
             print(f"{CYAN}=================================================={RESET}")
 
         except Exception:
@@ -339,35 +444,69 @@ async def start_background_monitoring(application: Application, chat_id: int):
         except Exception: pass
         await asyncio.sleep(SCAN_INTERVAL)
 
+# ─── 📱 TELEGRAM WEBAPP HANDLER ───
+async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    try:
+        raw_data = update.effective_message.web_app_data.data
+        data = json.loads(raw_data)
+        
+        action = data.get("action")
+        value = data.get("value")
+        chat_id = update.effective_chat.id
+
+        if action == "RECORD":
+            # เพิ่มช่องที่กดสั่งอัดลง Watchlist อัตโนมัติด้วย
+            wl = load_json_list(TT_WATCHLIST_FILE)
+            if value not in wl:
+                wl.append(value)
+                save_json_list(TT_WATCHLIST_FILE, wl)
+
+            await update.message.reply_text(f"🚀 **สั่งเริ่มอัดทันที:** `{value}`", parse_mode='Markdown')
+            asyncio.create_task(monitor_tt_task(context.application, chat_id, value))
+
+        elif action == "ADD_WATCHLIST":
+            wl = load_json_list(TT_WATCHLIST_FILE)
+            if value not in wl:
+                wl.append(value)
+                save_json_list(TT_WATCHLIST_FILE, wl)
+                await update.message.reply_text(f"✅ **เพิ่มเข้า Watchlist เรียบร้อย:** `{value}`", parse_mode='Markdown')
+            else:
+                await update.message.reply_text(f"⚠️ `{value}` มีอยู่ใน Watchlist แล้ว", parse_mode='Markdown')
+    except Exception as e:
+        await update.message.reply_text(f"❌ เกิดข้อผิดพลาดจาก WebApp: {e}")
+
 # ─── ⌨️ TELEGRAM HANDLERS ───
 def main_menu_keyboard():
     return ReplyKeyboardMarkup([
+        [InlineKeyboardButton("📱 เปิด Mini App", web_app=WebAppInfo(url=WEBAPP_URL))],
         ['📋 Watchlist', '🔴 Start Record'],
         ['📦 ไฟล์ค้างอัปโหลด', '💾 Storage']
     ], resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("🎬 **Multi-Platform Recorder Active!**\nดูสถานะเรียลไทม์ได้ที่หน้าจอ Termux ได้เลยครับ!", reply_markup=main_menu_keyboard(), parse_mode='Markdown')
+    global main_chat_id
+    main_chat_id = update.effective_chat.id
+    await update.message.reply_text("🎬 **Multi-Platform Recorder Active!**\nดูสถานะเรียลไทม์ได้ที่หน้าจอ Termux หรือกดเปิด Mini App ได้เลยครับ!", reply_markup=main_menu_keyboard(), parse_mode='Markdown')
     if not context.bot_data.get('monitor_running'):
         context.bot_data['monitor_running'] = True
         asyncio.create_task(start_background_monitoring(context.application, update.effective_chat.id))
         asyncio.create_task(upload_worker())
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global main_chat_id
+    main_chat_id = update.effective_chat.id
     raw_text = update.message.text.strip()
     action = context.user_data.get('action')
 
-    if raw_text in ['📋 Watchlist']:
+    if raw_text == '📋 Watchlist':
         wl = load_json_list(TT_WATCHLIST_FILE)
         kb = []
         
-        # ใส่รายชื่อปุ่มลบก่อน
-        for item in wl:
+        for idx, item in enumerate(wl):
             _, _, platform = get_stream_client_and_url(item)
             short_name = extract_display_name(item, platform)
-            kb.append([InlineKeyboardButton(f"❌ {short_name} ({platform})", callback_data=f"remove_TT_{item}")])
+            kb.append([InlineKeyboardButton(f"❌ {short_name} ({platform})", callback_data=f"remove_idx_{idx}")])
             
-        # เพิ่มปุ่ม Add Channel / URL ไว้แถวล่างสุด
         kb.append([InlineKeyboardButton("➕ Add Channel / URL", callback_data="add_tt_creator")])
         
         await update.message.reply_text("📋 **Watchlist Management:**", reply_markup=InlineKeyboardMarkup(kb), parse_mode='Markdown')
@@ -390,13 +529,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         context.user_data['action'] = 'waiting_for_add_tt'
         await query.message.reply_text("✍️ ส่ง Username (TikTok) หรือ URL เต็ม หรือ `bigo:ID_NUMBER`:")
         
-    elif query.data.startswith("remove_TT_"):
-        user = query.data.replace("remove_TT_", "")
-        wl = load_json_list(TT_WATCHLIST_FILE)
-        if user in wl:
-            wl.remove(user)
-            save_json_list(TT_WATCHLIST_FILE, wl)
-        await query.message.reply_text(f"❌ ลบออกจาก Watchlist แล้ว", parse_mode='Markdown')
+    elif query.data.startswith("remove_idx_"):
+        try:
+            idx = int(query.data.replace("remove_idx_", ""))
+            wl = load_json_list(TT_WATCHLIST_FILE)
+            if 0 <= idx < len(wl):
+                removed_item = wl.pop(idx)
+                save_json_list(TT_WATCHLIST_FILE, wl)
+                await query.message.reply_text(f"❌ ลบ `{removed_item}` ออกจาก Watchlist แล้ว", parse_mode='Markdown')
+        except Exception as e:
+            await query.message.reply_text(f"❌ เกิดข้อผิดพลาดในการลบ: {e}")
 
     elif query.data.startswith("up_confirm_"):
         file_id = query.data.replace("up_confirm_", "")
@@ -416,9 +558,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 # ─── 🏁 MAIN ENTRY POINT ───
 async def post_init(application: Application):
+    global telegram_app
+    telegram_app = application
     asyncio.create_task(termux_hud_loop())
 
 def main():
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+
     custom_request = HTTPXRequest(connect_timeout=120.0, read_timeout=120.0, write_timeout=120.0)
     
     application = (
@@ -431,6 +578,7 @@ def main():
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data_handler))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
     application.run_polling()
