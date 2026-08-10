@@ -8,13 +8,12 @@ import shutil
 import re
 import math
 import subprocess
-import threading
 import signal
 from urllib.parse import urlparse
 from datetime import datetime
 from PIL import Image
 
-# ─── Telegram & Web Server Libraries ───
+# ─── Telegram Libraries ───
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, Update, WebAppInfo
 from telegram.ext import (
     Application,
@@ -25,8 +24,6 @@ from telegram.ext import (
     filters,
 )
 from telegram.request import HTTPXRequest
-from flask import Flask, jsonify, request
-from flask_cors import CORS
 
 from streamget import (
     TikTokLiveStream,
@@ -43,10 +40,12 @@ logging.basicConfig(level=logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.CRITICAL)
 
 TOKEN = '8583340382:AAGQxoXa5OsKpOQnp3z7JiqbMQGekrvT2O8'
-WEBAPP_URL = "https://restaurants-decide-bubble-just.trycloudflare.com"
+# URL ของ GitHub Pages ที่รัน Mini App
+WEBAPP_URL = "https://alongkornmai-ui.github.io/streamget/"
 MY_COOKIE = "sessionid=32a62dc94c0c2ca4bce73bbf9b59fcc8;"
 
 TT_WATCHLIST_FILE = "watchlist.json"
+STATUS_JSON_FILE = "status.json"
 OUTPUT_DIR = "/storage/emulated/0/Tiktok_videos"
 SCAN_INTERVAL = 45
 
@@ -71,6 +70,46 @@ pending_uploads = {}
 main_chat_id = None
 telegram_app = None
 
+# ─── 🔄 GITHUB AUTO-SYNC FUNCTION ───
+def sync_status_to_github():
+    """สร้าง status.json และ Git Push ขึ้น GitHub Pages อัตโนมัติ"""
+    try:
+        watchlist_raw = load_json_list(TT_WATCHLIST_FILE)
+        
+        # แปลงชื่อให้อยู่ในรูปแบบอ่านง่ายสำหรับ Mini App
+        formatted_watchlist = []
+        for item in watchlist_raw:
+            _, _, platform = get_stream_client_and_url(item)
+            short_name = extract_display_name(item, platform)
+            formatted_watchlist.append(short_name)
+
+        active_list = []
+        for key, info in list(active_records_info.items()):
+            _, _, platform = get_stream_client_and_url(key)
+            short_name = extract_display_name(key, platform)
+            active_list.append({
+                "username": short_name,
+                "platform": info.get("platform", "Live")
+            })
+
+        total_files = len(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else 0
+
+        status_data = {
+            "active_list": active_list,
+            "watchlist": formatted_watchlist,
+            "total_recordings": total_files
+        }
+
+        with open(STATUS_JSON_FILE, "w", encoding="utf-8") as f:
+            json.dump(status_data, f, ensure_ascii=False, indent=2)
+
+        # สั่ง Git Push แบบเงียบๆ
+        subprocess.run(["git", "add", STATUS_JSON_FILE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["git", "commit", "-m", "Auto update status.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(["git", "push", "origin", "main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        pass
+
 # ─── 🔍 HELPER FUNCTIONS ───
 def load_json_list(filename):
     if os.path.exists(filename):
@@ -83,6 +122,7 @@ def load_json_list(filename):
 def save_json_list(filename, data):
     with open(filename, "w", encoding="utf-8") as f: 
         json.dump(data, f, indent=4, ensure_ascii=False)
+    sync_status_to_github()
 
 def format_duration(seconds):
     m, s = divmod(int(seconds), 60)
@@ -174,111 +214,17 @@ def get_stream_client_and_url(input_str: str):
         target_url = f"https://www.tiktok.com/@{clean_user}/live"
         return TikTokLiveStream(cookies=MY_COOKIE), target_url, "TikTok"
 
-# ─── 🌐 FLASK API FOR TELEGRAM MINI APP ───
-flask_app = Flask(__name__)
-CORS(flask_app)
-
-@flask_app.route('/api/status', methods=['GET'])
-def api_status():
-    watchlist = load_json_list(TT_WATCHLIST_FILE)
-    records = []
-    now = time.time()
-    for key, info in list(active_records_info.items()):
-        _, _, platform = get_stream_client_and_url(key)
-        short_name = extract_display_name(key, platform)
-        elapsed = int(now - info['start_timestamp'])
-        records.append({
-            "username": short_name,
-            "raw_key": key,
-            "elapsed": elapsed,
-            "platform": info['platform']
-        })
-    
-    total_files = len(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else 0
-    return jsonify({
-        "active_records": records,
-        "watchlist_count": len(watchlist),
-        "total_recordings": total_files
-    })
-
-@flask_app.route('/api/watchlist', methods=['GET', 'POST', 'DELETE'])
-def api_watchlist():
-    watchlist = load_json_list(TT_WATCHLIST_FILE)
-    if request.method == 'GET':
-        result = []
-        for item in watchlist:
-            _, _, platform = get_stream_client_and_url(item)
-            short_name = extract_display_name(item, platform)
-            is_rec = item in active_records_info
-            result.append({
-                "username": short_name, 
-                "raw": item, 
-                "platform": platform, 
-                "status": "🔴 REC" if is_rec else "💤 WAIT"
-            })
-        return jsonify({"watchlist": result})
-    
-    elif request.method == 'POST':
-        data = request.json or {}
-        username = data.get("username", "").strip()
-        if username and username not in watchlist:
-            watchlist.append(username)
-            save_json_list(TT_WATCHLIST_FILE, watchlist)
-            return jsonify({"success": True})
-        return jsonify({"success": False, "message": "Already exists or invalid"})
-
-    elif request.method == 'DELETE':
-        data = request.json or {}
-        username = data.get("username", "").strip()
-        updated = [x for x in watchlist if x != username and extract_display_name(x, get_stream_client_and_url(x)[2]) != username]
-        save_json_list(TT_WATCHLIST_FILE, updated)
-        return jsonify({"success": True})
-
-@flask_app.route('/api/record/start', methods=['POST'])
-def api_record_start():
-    global telegram_app, main_chat_id
-    data = request.json or {}
-    username = data.get("username", "").strip()
-    if username and telegram_app:
-        loop = telegram_app.loop
-        asyncio.run_coroutine_threadsafe(
-            monitor_tt_task(telegram_app, main_chat_id, username), loop
-        )
-        return jsonify({"success": True})
-    return jsonify({"success": False})
-
-@flask_app.route('/api/record/stop', methods=['POST'])
-def api_record_stop():
-    data = request.json or {}
-    username = data.get("username", "").strip()
-    stopped = False
-    for key, proc in list(active_processes.items()):
-        if username in key:
-            try:
-                proc.send_signal(signal.SIGINT)
-            except Exception:
-                try: proc.kill()
-                except Exception: pass
-            active_processes.pop(key, None)
-            active_records_info.pop(key, None)
-            stopped = True
-    return jsonify({"success": stopped})
-
-def run_flask():
-    flask_app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
-
 # ─── 🖥️ TERMUX TERMINAL HUD LOOP ───
 async def termux_hud_loop():
     while True:
         try:
             watchlist = load_json_list(TT_WATCHLIST_FILE)
-            # รวมรายชื่อที่กำลังอัดอยู่เข้ามาด้วยเพื่อให้แสดงผลครบทุกช่อง
             all_items = list(dict.fromkeys(watchlist + list(active_records_info.keys())))
             
             remaining_sec = max(0, int(next_scan_timestamp - time.time())) if next_scan_timestamp > 0 else 0
             now_str = datetime.now().strftime("%H:%M:%S")
 
-            print("\033[H\033[J", end="") # Clear screen smoothly
+            print("\033[H\033[J", end="") # Clear screen
 
             print(f"{CYAN}{BOLD}=================================================={RESET}")
             print(f"{CYAN}{BOLD}       🎬 LIVE STREAM RECORDER - TERMUX HUD       {RESET}")
@@ -339,6 +285,7 @@ async def rcmltb_leech_engine(application: Application, chat_id: int, file_path:
         if process.returncode == 0:
             await bot.edit_message_text(chat_id=chat_id, message_id=status_msg.message_id, text=f"✅ **ส่งไฟล์สำเร็จเรียบร้อย!**\n📄 วิดีโอ: `{filename}`", parse_mode='Markdown')
             if os.path.exists(file_path): os.remove(file_path)
+            sync_status_to_github()
         else:
             await bot.edit_message_text(chat_id=chat_id, message_id=status_msg.message_id, text="❌ **ล้มเหลวในการส่งไฟล์**")
     except Exception as e:
@@ -366,6 +313,7 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
                 "start_timestamp": now_time,
                 "start_str": start_time_str
             }
+            sync_status_to_github() # ซิงก์สถานะกำลังอัดขึ้น GitHub
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             clean_name = re.sub(r'[^\w\-]', '_', short_name)
@@ -431,6 +379,7 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
     finally:
         active_records_info.pop(key, None)
         active_processes.pop(key, None)
+        sync_status_to_github() # ซิงก์สถานะเมื่ออัดเสร็จขึ้น GitHub
 
 async def start_background_monitoring(application: Application, chat_id: int):
     global next_scan_timestamp
@@ -455,7 +404,6 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
         chat_id = update.effective_chat.id
 
         if action == "RECORD":
-            # เพิ่มช่องที่กดสั่งอัดลง Watchlist อัตโนมัติด้วย
             wl = load_json_list(TT_WATCHLIST_FILE)
             if value not in wl:
                 wl.append(value)
@@ -472,6 +420,13 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
                 await update.message.reply_text(f"✅ **เพิ่มเข้า Watchlist เรียบร้อย:** `{value}`", parse_mode='Markdown')
             else:
                 await update.message.reply_text(f"⚠️ `{value}` มีอยู่ใน Watchlist แล้ว", parse_mode='Markdown')
+
+        elif action == "REMOVE_WATCHLIST":
+            wl = load_json_list(TT_WATCHLIST_FILE)
+            updated_wl = [x for x in wl if value.lower() not in x.lower()]
+            save_json_list(TT_WATCHLIST_FILE, updated_wl)
+            await update.message.reply_text(f"❌ **ลบเรียบร้อย:** `{value}`", parse_mode='Markdown')
+
     except Exception as e:
         await update.message.reply_text(f"❌ เกิดข้อผิดพลาดจาก WebApp: {e}")
 
@@ -479,14 +434,18 @@ async def web_app_data_handler(update: Update, context: ContextTypes.DEFAULT_TYP
 def main_menu_keyboard():
     return ReplyKeyboardMarkup([
         [InlineKeyboardButton("📱 เปิด Mini App", web_app=WebAppInfo(url=WEBAPP_URL))],
-        ['📋 Watchlist', '🔴 Start Record'],
-        ['📦 ไฟล์ค้างอัปโหลด', '💾 Storage']
+        ['📋 Watchlist'],
+        ['📦 ไฟล์ค้างอัปโหลด']
     ], resize_keyboard=True)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     global main_chat_id
     main_chat_id = update.effective_chat.id
     await update.message.reply_text("🎬 **Multi-Platform Recorder Active!**\nดูสถานะเรียลไทม์ได้ที่หน้าจอ Termux หรือกดเปิด Mini App ได้เลยครับ!", reply_markup=main_menu_keyboard(), parse_mode='Markdown')
+    
+    # อัปเดตไฟล์ status.json ขึ้น GitHub ทันทีเมื่อกด /start
+    sync_status_to_github()
+
     if not context.bot_data.get('monitor_running'):
         context.bot_data['monitor_running'] = True
         asyncio.create_task(start_background_monitoring(context.application, update.effective_chat.id))
@@ -563,9 +522,6 @@ async def post_init(application: Application):
     asyncio.create_task(termux_hud_loop())
 
 def main():
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-
     custom_request = HTTPXRequest(connect_timeout=120.0, read_timeout=120.0, write_timeout=120.0)
     
     application = (
