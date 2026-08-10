@@ -138,7 +138,6 @@
     </div>
 
     <script>
-        // เริ่มต้นใช้งาน Telegram WebApp SDK
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         if (tg) {
             tg.expand();
@@ -164,24 +163,21 @@
             }
         }
 
-        // ดึงสถานะจาก status.json บน GitHub Pages
         async function fetchStatus() {
             try {
-                // เติม Timestamp กันเบราว์เซอร์ติด Cache
-                const res = await fetch('status.json?t=' + new Date().getTime());
+                // เพิ่ม ./ นำหน้าตรงนี้
+                const res = await fetch('./status.json?t=' + new Date().getTime());
                 if (!res.ok) return;
                 const data = await res.json();
 
                 const watchlist = data.watchlist || [];
                 const activeList = data.active_list || [];
 
-                // อัปเดต สถิติ Overview
                 document.getElementById('totalRecordings').innerText = data.total_recordings || 0;
                 document.getElementById('activeCount').innerText = activeList.length;
                 document.getElementById('watchlistCount').innerText = watchlist.length;
                 document.getElementById('countText').innerText = watchlist.length;
 
-                // Render หน้า Home Activity
                 const actContainer = document.getElementById('activityContainer');
                 if (activeList.length === 0) {
                     actContainer.innerHTML = '<div class="empty-state">Nothing is recording right now.</div>';
@@ -206,7 +202,6 @@
                     actContainer.innerHTML = html;
                 }
 
-                // Render หน้า Watchlist
                 const wlContainer = document.getElementById('watchlistContainer');
                 if (watchlist.length === 0) {
                     wlContainer.innerHTML = '<div class="empty-state">No users in Watchlist.</div>';
@@ -235,7 +230,6 @@
             }
         }
 
-        // สั่งอัดคลิป
         function startRecordDirect(inputId) {
             const input = document.getElementById(inputId);
             const val = input.value.trim();
@@ -249,7 +243,6 @@
             }
         }
 
-        // สั่งเพิ่ม Watchlist
         function addWatchlistDirect(inputId) {
             const input = document.getElementById(inputId);
             const val = input.value.trim();
@@ -263,7 +256,6 @@
             }
         }
 
-        // สั่งลบ Watchlist
         function removeWatchlistDirect(username) {
             if (tg) {
                 tg.sendData(JSON.stringify({ action: "REMOVE_WATCHLIST", value: username }));
@@ -273,8 +265,7 @@
             }
         }
 
-        // ดึงสถานะใหม่ทุกๆ 5 วินาที
-        setInterval(fetchStatus, 5000);
+        setInterval(fetchStatus, 3000);
         fetchStatus();
     </script>
 </body>
