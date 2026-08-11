@@ -1,26 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "helena19975",
-      "platform": "TikTok",
-      "start_timestamp": 1786376353.4291632
-    },
-    {
-      "username": "alichia.nur.aini",
-      "platform": "TikTok",
-      "start_timestamp": 1786404575.8442054
-    },
-    {
-      "username": "Suthida.6688",
-      "platform": "BigoLive",
-      "start_timestamp": 1786408021.0244687
-    },
-    {
-      "username": "miss.ella201",
-      "platform": "TikTok",
-      "start_timestamp": 1786409566.9754004
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "ja.o.showcase",
     "mongoltsuki",
@@ -93,5 +72,5 @@
     "miss.ella201",
     "Suthida.6688"
   ],
-  "total_recordings": 67
+  "total_recordings": 68
 }
