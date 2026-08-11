@@ -14,11 +14,6 @@
       "username": "fernchen_02",
       "platform": "TikTok",
       "start_timestamp": 1786430104.3891203
-    },
-    {
-      "username": "patdarin",
-      "platform": "BigoLive",
-      "start_timestamp": 1786430540.9171894
     }
   ],
   "watchlist": [
@@ -101,5 +96,5 @@
     "zee.you88",
     "fernchen_02"
   ],
-  "total_recordings": 74
+  "total_recordings": 73
 }
