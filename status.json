@@ -21,11 +21,6 @@
       "start_timestamp": 1786439552.7046192
     },
     {
-      "username": "sabbyleealcantara",
-      "platform": "TikTok",
-      "start_timestamp": 1786440832.731427
-    },
-    {
       "username": "1118800048",
       "platform": "BigoLive",
       "start_timestamp": 1786440863.808412
@@ -112,5 +107,5 @@
     "fernchen_02",
     "donnehkakug"
   ],
-  "total_recordings": 96
+  "total_recordings": 95
 }
