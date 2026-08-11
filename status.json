@@ -11,11 +11,6 @@
       "start_timestamp": 1786428792.780209
     },
     {
-      "username": "1118800048",
-      "platform": "BigoLive",
-      "start_timestamp": 1786443074.7996647
-    },
-    {
       "username": "florseraphpitch",
       "platform": "TikTok",
       "start_timestamp": 1786443281.4478917
@@ -101,5 +96,5 @@
     "fernchen_02",
     "donnehkakug"
   ],
-  "total_recordings": 99
+  "total_recordings": 98
 }
