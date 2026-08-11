@@ -70,13 +70,12 @@ pending_uploads = {}
 main_chat_id = None
 telegram_app = None
 
-# ─── 🔄 GITHUB AUTO-SYNC FUNCTION (UPDATED WITH TIMESTAMP) ───
+# ─── 🔄 GITHUB AUTO-SYNC FUNCTION ───
 def sync_status_to_github():
     """สร้าง status.json และ Git Push ขึ้น GitHub Pages อัตโนมัติ"""
     try:
         watchlist_raw = load_json_list(TT_WATCHLIST_FILE)
         
-        # แปลงชื่อให้อยู่ในรูปแบบอ่านง่ายสำหรับ Mini App
         formatted_watchlist = []
         for item in watchlist_raw:
             _, _, platform = get_stream_client_and_url(item)
@@ -90,7 +89,7 @@ def sync_status_to_github():
             active_list.append({
                 "username": short_name,
                 "platform": info.get("platform", "Live"),
-                "start_timestamp": info.get("start_timestamp", time.time()) # <--- ส่ง Timestamp ไปให้ Mini App คำนวณเวลาเดินหน้า
+                "start_timestamp": info.get("start_timestamp", time.time())
             })
 
         total_files = len(os.listdir(OUTPUT_DIR)) if os.path.exists(OUTPUT_DIR) else 0
@@ -104,7 +103,6 @@ def sync_status_to_github():
         with open(STATUS_JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(status_data, f, ensure_ascii=False, indent=2)
 
-        # สั่ง Git Push แบบเงียบๆ
         subprocess.run(["git", "add", STATUS_JSON_FILE], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "commit", "-m", "Auto update status.json"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         subprocess.run(["git", "push", "origin", "main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -196,7 +194,11 @@ def extract_display_name(input_str: str, platform: str) -> str:
 
 def get_stream_client_and_url(input_str: str):
     text = str(input_str).strip()
-    if "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
+    
+    # 📌 เพิ่มรองรับ Tango.me
+    if "tango.me" in text:
+        return "YTDLP", text, "Tango"
+    elif "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
         clean_id = text.lower().replace("bigo:", "").strip()
         target_url = clean_id if clean_id.startswith("http") else f"https://www.bigo.tv/{clean_id}"
         return BigoLiveStream(), target_url, "BigoLive"
@@ -302,9 +304,19 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
     last_check_time[key] = datetime.now().strftime("%H:%M:%S")
 
     try:
-        web_data = await stream_client.fetch_web_stream_data(target_url)
-        stream_obj = await stream_client.fetch_stream_url(web_data)
-        stream_url = stream_obj.m3u8_url or stream_obj.flv_url
+        stream_url = None
+        
+        # 📌 ปรับรองรับการใช้ yt-dlp ดึง URL ไลฟ์สำหรับ Tango
+        if stream_client == "YTDLP":
+            cmd_get = f'yt-dlp -g "{target_url}"'
+            proc = await asyncio.create_subprocess_shell(cmd_get, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            stdout, _ = await proc.communicate()
+            if proc.returncode == 0 and stdout:
+                stream_url = stdout.decode().strip().split('\n')[0]
+        else:
+            web_data = await stream_client.fetch_web_stream_data(target_url)
+            stream_obj = await stream_client.fetch_stream_url(web_data)
+            stream_url = stream_obj.m3u8_url or stream_obj.flv_url
 
         if stream_url:
             now_time = time.time()
@@ -314,7 +326,7 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
                 "start_timestamp": now_time,
                 "start_str": start_time_str
             }
-            sync_status_to_github() # ซิงก์สถานะกำลังอัดขึ้น GitHub
+            sync_status_to_github()
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             clean_name = re.sub(r'[^\w\-]', '_', short_name)
@@ -380,7 +392,7 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
     finally:
         active_records_info.pop(key, None)
         active_processes.pop(key, None)
-        sync_status_to_github() # ซิงก์สถานะเมื่ออัดเสร็จขึ้น GitHub
+        sync_status_to_github()
 
 async def start_background_monitoring(application: Application, chat_id: int):
     global next_scan_timestamp
@@ -444,7 +456,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     main_chat_id = update.effective_chat.id
     await update.message.reply_text("🎬 **Multi-Platform Recorder Active!**\nดูสถานะเรียลไทม์ได้ที่หน้าจอ Termux หรือกดเปิด Mini App ได้เลยครับ!", reply_markup=main_menu_keyboard(), parse_mode='Markdown')
     
-    # อัปเดตไฟล์ status.json ขึ้น GitHub ทันทีเมื่อกด /start
     sync_status_to_github()
 
     if not context.bot_data.get('monitor_running'):
