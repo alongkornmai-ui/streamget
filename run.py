@@ -12,6 +12,7 @@ import signal
 from urllib.parse import urlparse
 from datetime import datetime
 from PIL import Image
+import httpx  # ใช้สำหรับดึง API ของ Tango
 
 # ─── Telegram Libraries ───
 from telegram import ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton, Update, WebAppInfo
@@ -40,7 +41,6 @@ logging.basicConfig(level=logging.CRITICAL)
 logging.getLogger("httpx").setLevel(logging.CRITICAL)
 
 TOKEN = '8583340382:AAGQxoXa5OsKpOQnp3z7JiqbMQGekrvT2O8'
-# URL ของ GitHub Pages ที่รัน Mini App
 WEBAPP_URL = "https://alongkornmai-ui.github.io/streamget/"
 MY_COOKIE = "sessionid=32a62dc94c0c2ca4bce73bbf9b59fcc8;"
 
@@ -70,9 +70,28 @@ pending_uploads = {}
 main_chat_id = None
 telegram_app = None
 
+# ─── 🛠️ TANGO API FETCH FUNCTION ───
+async def get_tango_stream_url(url: str):
+    """ฟังก์ชันยิง API ของ Tango เพื่อดึง HLS Stream URL (.m3u8) โดยตรง"""
+    try:
+        username = url.split('/')[-1].split('?')[0]
+        api_url = f"https://api.tango.me/v2/users/{username}/stream"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            res = await client.get(api_url, headers=headers)
+            if res.status_code == 200:
+                data = res.json()
+                # ตรวจสอบว่ากำลังสตรีมอยู่หรือไม่
+                if data.get("status") == "LIVE" or "streamUrl" in data:
+                    return data.get("streamUrl") or data.get("hlsUrl")
+    except Exception:
+        pass
+    return None
+
 # ─── 🔄 GITHUB AUTO-SYNC FUNCTION ───
 def sync_status_to_github():
-    """สร้าง status.json และ Git Push ขึ้น GitHub Pages อัตโนมัติ"""
     try:
         watchlist_raw = load_json_list(TT_WATCHLIST_FILE)
         
@@ -195,9 +214,8 @@ def extract_display_name(input_str: str, platform: str) -> str:
 def get_stream_client_and_url(input_str: str):
     text = str(input_str).strip()
     
-    # 📌 เพิ่มรองรับ Tango.me
     if "tango.me" in text:
-        return "YTDLP", text, "Tango"
+        return "TANGO_API", text, "Tango"
     elif "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
         clean_id = text.lower().replace("bigo:", "").strip()
         target_url = clean_id if clean_id.startswith("http") else f"https://www.bigo.tv/{clean_id}"
@@ -306,13 +324,9 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
     try:
         stream_url = None
         
-        # 📌 ปรับรองรับการใช้ yt-dlp ดึง URL ไลฟ์สำหรับ Tango
-        if stream_client == "YTDLP":
-            cmd_get = f'yt-dlp -g "{target_url}"'
-            proc = await asyncio.create_subprocess_shell(cmd_get, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-            stdout, _ = await proc.communicate()
-            if proc.returncode == 0 and stdout:
-                stream_url = stdout.decode().strip().split('\n')[0]
+        # 📌 เช็กเฉพาะของ Tango ผ่าน API
+        if stream_client == "TANGO_API":
+            stream_url = await get_tango_stream_url(target_url)
         else:
             web_data = await stream_client.fetch_web_stream_data(target_url)
             stream_obj = await stream_client.fetch_stream_url(web_data)
@@ -339,6 +353,7 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
                     parse_mode='Markdown'
                 )
 
+            # ใช้ FFmpeg อัดลิงก์สดโดยตรง
             cmd = f'ffmpeg -i "{stream_url}" -c copy -y "{output_file}"'
             process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             active_processes[key] = process
