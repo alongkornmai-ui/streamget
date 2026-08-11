@@ -16,11 +16,6 @@
       "start_timestamp": 1786430104.3891203
     },
     {
-      "username": "patdarin",
-      "platform": "BigoLive",
-      "start_timestamp": 1786432700.5962656
-    },
-    {
       "username": "nongrung.wm",
       "platform": "TikTok",
       "start_timestamp": 1786433046.695072
@@ -107,5 +102,5 @@
     "fernchen_02",
     "donnehkakug"
   ],
-  "total_recordings": 72
+  "total_recordings": 71
 }
