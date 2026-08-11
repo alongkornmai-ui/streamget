@@ -1,272 +1,317 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Platform Live Recorder</title>
-    <!-- Telegram WebApp SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: #121212; color: #ffffff; padding: 20px; padding-bottom: 80px; }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .title { display: flex; align-items: center; gap: 10px; font-size: 1.2rem; font-weight: bold; }
-        .dot { width: 14px; height: 14px; background-color: #ff3b30; border-radius: 50%; box-shadow: 0 0 10px rgba(255, 59, 48, 0.8); }
-        .refresh-btn { background: #2c2c2e; border: none; padding: 8px; border-radius: 50%; color: #fff; cursor: pointer; }
-        .hero { margin-bottom: 20px; }
-        .hero h1 { font-size: 1.8rem; margin-bottom: 5px; }
-        .hero p { color: #8e8e93; font-size: 0.9rem; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Recorder UI</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
 
-        .card { background-color: #1c1c1e; border-radius: 16px; padding: 16px; margin-bottom: 20px; border: 1px solid #2c2c2e; }
-        .card-title { font-size: 0.85rem; color: #8e8e93; margin-bottom: 12px; }
+    body {
+      background-color: #0d0d0d;
+      color: #ffffff;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
 
-        .input-group { display: flex; gap: 10px; margin-top: 10px; }
-        .input-group input { flex: 1; background-color: #2c2c2e; border: none; border-radius: 10px; padding: 12px 16px; color: #fff; font-size: 0.95rem; outline: none; }
-        .input-group button { background-color: #ffffff; color: #000000; border: none; border-radius: 10px; padding: 12px 20px; font-weight: bold; cursor: pointer; }
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #f1f1f1;
+    }
 
-        .activity-item, .watchlist-item { display: flex; align-items: center; justify-content: space-between; background-color: #2c2c2e; border-radius: 12px; padding: 12px 16px; margin-bottom: 10px; }
-        .activity-user, .user-info { display: flex; align-items: center; gap: 12px; }
-        .avatar { width: 40px; height: 40px; background-color: #3a3a3c; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; }
-        .username { font-weight: 600; font-size: 0.95rem; }
-        .badge-rec { background-color: rgba(255, 59, 48, 0.2); color: #ff3b30; font-size: 0.75rem; padding: 2px 8px; border-radius: 6px; font-weight: bold; display: inline-block; margin-top: 4px; }
-        .timer { font-family: monospace; font-size: 0.95rem; color: #34c759; font-weight: bold; background: rgba(52, 199, 89, 0.1); padding: 4px 8px; border-radius: 6px; }
+    /* Card Layout */
+    .card {
+      background-color: #161618;
+      border: 1px solid #26262a;
+      border-radius: 16px;
+      padding: 16px;
+    }
 
-        .status-tag { font-size: 0.75rem; color: #8e8e93; margin-top: 2px; }
-        .status-tag.live { color: #ff3b30; font-weight: bold; }
-        .btn-remove { background-color: rgba(255, 59, 48, 0.15); color: #ff3b30; border: none; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer; }
+    /* Quick Record */
+    .quick-record-box {
+      display: flex;
+      gap: 12px;
+    }
 
-        .overview-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .stat-box { background-color: #1c1c1e; border-radius: 16px; padding: 16px; text-align: center; border: 1px solid #2c2c2e; }
-        .stat-num { font-size: 1.8rem; font-weight: bold; margin-bottom: 4px; }
-        .stat-label { font-size: 0.75rem; color: #8e8e93; }
+    .input-field {
+      flex: 1;
+      background-color: #0d0d0d;
+      border: 1px solid #26262a;
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #ffffff;
+      font-size: 0.95rem;
+      outline: none;
+    }
 
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: #1c1c1e; border-top: 1px solid #2c2c2e; display: flex; justify-content: space-around; padding: 10px 0; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #8e8e93; font-size: 0.75rem; text-decoration: none; cursor: pointer; background: none; border: none; }
-        .nav-item.active { color: #ffffff; }
+    .input-field::placeholder {
+      color: #52525b;
+    }
 
-        .empty-state { text-align: center; color: #8e8e93; padding: 20px 0; font-size: 0.9rem; }
-        
-        .page-content { display: none; }
-        .page-content.active { display: block; }
-    </style>
+    .btn-record {
+      background-color: #ffffff;
+      color: #000000;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    /* Activity Section */
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background-color: #27272a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: #a1a1aa;
+      font-size: 0.9rem;
+      object-fit: cover;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .username {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .status-meta {
+      font-size: 0.8rem;
+      color: #e11d48;
+    }
+
+    .status-meta.muted {
+      color: #71717a;
+    }
+
+    .btn-action {
+      background-color: transparent;
+      border: none;
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      padding: 6px 12px;
+    }
+
+    .badge-recording {
+      background-color: #3f121d;
+      color: #f43f5e;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .badge-queued {
+      background-color: #27272a;
+      color: #a1a1aa;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    .divider {
+      height: 1px;
+      background-color: #26262a;
+      margin: 8px 0;
+    }
+
+    /* Empty State */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 0;
+      color: #71717a;
+      gap: 8px;
+    }
+
+    .empty-icon {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #52525b;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* Overview Section */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat-box {
+      background-color: #161618;
+      border: 1px solid #26262a;
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-number {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: #71717a;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- Header -->
-    <div class="header">
-        <div class="title">
-            <div class="dot"></div>
-            <span id="headerTitle">Multi-Platform Live Recorder</span>
-        </div>
-        <button class="refresh-btn" onclick="fetchStatus()">🔄</button>
+  <!-- Quick Record -->
+  <section>
+    <h2>Quick record</h2>
+    <div class="card">
+      <div class="quick-record-box">
+        <input type="text" id="targetInput" class="input-field" placeholder="@username or URL">
+        <button class="btn-record" onclick="sendAction('RECORD')">Record</button>
+      </div>
     </div>
+  </section>
 
-    <!-- PAGE 1: HOME PAGE -->
-    <div id="pageHome" class="page-content active">
-        <div class="hero">
-            <h1 id="userGreeting">Hi User</h1>
-            <p>Record a LIVE stream or check status in real-time.</p>
-        </div>
+  <!-- Activity -->
+  <section>
+    <h2>Activity</h2>
+    <div class="card">
+      <div class="activity-list" id="activityList">
+        <!-- จะดึงข้อมูลจาก status.json มาแสดงผลอัตโนมัติ -->
+        <div class="empty-state">Loading activity...</div>
+      </div>
+    </div>
+  </section>
 
-        <div class="card">
-            <div class="card-title">Quick Record</div>
-            <div class="input-group">
-                <input type="text" id="recordInputHome" placeholder="@username or URL">
-                <button onclick="startRecordDirect('recordInputHome')">Record</button>
-            </div>
-        </div>
+  <!-- Live from Watchlist -->
+  <section>
+    <h2>Live from your watchlist</h2>
+    <div class="card">
+      <div class="empty-state">
+        <div class="empty-icon">-</div>
+        <p style="font-size: 0.85rem;">No tracked creators are live right now.</p>
+      </div>
+    </div>
+  </section>
 
-        <div class="card">
-            <div class="card-title">Activity (Live Monitoring)</div>
-            <div id="activityContainer">
-                <div class="empty-state">Loading activity...</div>
-            </div>
-        </div>
+  <!-- Overview -->
+  <section>
+    <h2>Overview</h2>
+    <div class="overview-grid">
+      <div class="stat-box">
+        <span class="stat-number" id="recCount">0</span>
+        <span class="stat-label">Recordings</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number" id="capTime">0h</span>
+        <span class="stat-label">Captured</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-number" id="watchCount">0/3</span>
+        <span class="stat-label">Watchlist</span>
+      </div>
+    </div>
+  </section>
 
-        <div class="hero">
-            <p style="font-weight: bold; color: #fff; margin-bottom: 10px;">Overview</p>
-            <div class="overview-grid">
-                <div class="stat-box">
-                    <div class="stat-num" id="totalRecordings">0</div>
-                    <div class="stat-label">Recordings</div>
+  <script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.expand();
+
+    function sendAction(action) {
+      const val = document.getElementById('targetInput').value.trim();
+      if (!val) return;
+      if (tg) {
+        tg.sendData(JSON.stringify({ action: action, value: val }));
+        tg.close();
+      }
+    }
+
+    // ดึงข้อมูลเรียลไทม์จาก status.json บน GitHub
+    async function fetchStatus() {
+      try {
+        const res = await fetch('status.json?t=' + new Date().getTime());
+        const data = await res.json();
+
+        // Update Overview Stats
+        document.getElementById('recCount').innerText = data.total_recordings || 0;
+        document.getElementById('watchCount').innerText = `${data.watchlist?.length || 0}/10`;
+
+        // Update Activity
+        const container = document.getElementById('activityList');
+        if (data.active_list && data.active_list.length > 0) {
+          container.innerHTML = data.active_list.map((item, idx) => `
+            ${idx > 0 ? '<div class="divider"></div>' : ''}
+            <div class="activity-item">
+              <div class="item-left">
+                <div class="avatar">${item.username.substring(0,2).toUpperCase()}</div>
+                <div class="user-info">
+                  <span class="username">@${item.username}</span>
+                  <span class="status-meta">Recording...</span>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-num" id="activeCount">0</div>
-                    <div class="stat-label">Active</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-num" id="watchlistCount">0</div>
-                    <div class="stat-label">Watchlist</div>
-                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span class="badge-recording">Recording</span>
+                <button class="btn-action">Stop</button>
+              </div>
             </div>
-        </div>
-    </div>
-
-    <!-- PAGE 2: WATCHLIST PAGE -->
-    <div id="pageWatchlist" class="page-content">
-        <div class="hero">
-            <h1>Watchlist Status</h1>
-            <p>Manage users you want to record automatically.</p>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Add To Watchlist</div>
-            <div class="input-group">
-                <input type="text" id="recordInputWatchlist" placeholder="@username or URL">
-                <button onclick="addWatchlistDirect('recordInputWatchlist')">Add</button>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Creators Status (<span id="countText">0</span>)</div>
-            <div id="watchlistContainer">
-                <div class="empty-state">Loading watchlist...</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom Navigation -->
-    <div class="bottom-nav">
-        <button id="navHome" class="nav-item active" onclick="switchPage('home')">
-            <span>🏠</span>
-            <span>Home</span>
-        </button>
-        <button id="navWatchlist" class="nav-item" onclick="switchPage('watchlist')">
-            <span>📺</span>
-            <span>Watchlist</span>
-        </button>
-    </div>
-
-    <script>
-        const tg = window.Telegram ? window.Telegram.WebApp : null;
-        if (tg) {
-            tg.expand();
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                document.getElementById('userGreeting').innerText = `Hi ${tg.initDataUnsafe.user.first_name}`;
-            }
+          `).join('');
+        } else {
+          container.innerHTML = `<div class="empty-state"><p style="font-size:0.85rem">No active recordings</p></div>`;
         }
+      } catch (e) {
+        console.error(e);
+      }
+    }
 
-        function switchPage(page) {
-            document.getElementById('pageHome').classList.remove('active');
-            document.getElementById('pageWatchlist').classList.remove('active');
-            document.getElementById('navHome').classList.remove('active');
-            document.getElementById('navWatchlist').classList.remove('active');
-
-            if (page === 'home') {
-                document.getElementById('pageHome').classList.add('active');
-                document.getElementById('navHome').classList.add('active');
-                document.getElementById('headerTitle').innerText = 'Multi-Platform Live Recorder';
-            } else {
-                document.getElementById('pageWatchlist').classList.add('active');
-                document.getElementById('navWatchlist').classList.add('active');
-                document.getElementById('headerTitle').innerText = 'Watchlist';
-            }
-        }
-
-        async function fetchStatus() {
-            try {
-                // เพิ่ม ./ นำหน้าตรงนี้
-                const res = await fetch('./status.json?t=' + new Date().getTime());
-                if (!res.ok) return;
-                const data = await res.json();
-
-                const watchlist = data.watchlist || [];
-                const activeList = data.active_list || [];
-
-                document.getElementById('totalRecordings').innerText = data.total_recordings || 0;
-                document.getElementById('activeCount').innerText = activeList.length;
-                document.getElementById('watchlistCount').innerText = watchlist.length;
-                document.getElementById('countText').innerText = watchlist.length;
-
-                const actContainer = document.getElementById('activityContainer');
-                if (activeList.length === 0) {
-                    actContainer.innerHTML = '<div class="empty-state">Nothing is recording right now.</div>';
-                } else {
-                    let html = '';
-                    activeList.forEach(item => {
-                        const name = item.username;
-                        const initial = name.charAt(0).toUpperCase();
-                        html += `
-                            <div class="activity-item">
-                                <div class="activity-user">
-                                    <div class="avatar">${initial}</div>
-                                    <div>
-                                        <div class="username">@${name}</div>
-                                        <span class="badge-rec">RECORDING</span>
-                                    </div>
-                                </div>
-                                <div class="timer">LIVE</div>
-                            </div>
-                        `;
-                    });
-                    actContainer.innerHTML = html;
-                }
-
-                const wlContainer = document.getElementById('watchlistContainer');
-                if (watchlist.length === 0) {
-                    wlContainer.innerHTML = '<div class="empty-state">No users in Watchlist.</div>';
-                } else {
-                    let htmlWL = '';
-                    watchlist.forEach(user => {
-                        const initial = user.charAt(0).toUpperCase();
-                        const isLive = activeList.some(a => a.username.toLowerCase() === user.toLowerCase());
-                        htmlWL += `
-                            <div class="watchlist-item">
-                                <div class="user-info">
-                                    <div class="avatar">${initial}</div>
-                                    <div>
-                                        <div class="username">@${user}</div>
-                                        <div class="status-tag ${isLive ? 'live' : ''}">${isLive ? '🔴 Recording...' : 'Monitoring...'}</div>
-                                    </div>
-                                </div>
-                                <button class="btn-remove" onclick="removeWatchlistDirect('${user}')">Remove</button>
-                            </div>
-                        `;
-                    });
-                    wlContainer.innerHTML = htmlWL;
-                }
-            } catch (err) {
-                console.error("Error fetching status.json:", err);
-            }
-        }
-
-        function startRecordDirect(inputId) {
-            const input = document.getElementById(inputId);
-            const val = input.value.trim();
-            if (!val) return;
-
-            if (tg) {
-                tg.sendData(JSON.stringify({ action: "RECORD", value: val }));
-                tg.close();
-            } else {
-                alert("กรุณาเปิดผ่าน Telegram Mini App ครับ");
-            }
-        }
-
-        function addWatchlistDirect(inputId) {
-            const input = document.getElementById(inputId);
-            const val = input.value.trim();
-            if (!val) return;
-
-            if (tg) {
-                tg.sendData(JSON.stringify({ action: "ADD_WATCHLIST", value: val }));
-                tg.close();
-            } else {
-                alert("กรุณาเปิดผ่าน Telegram Mini App ครับ");
-            }
-        }
-
-        function removeWatchlistDirect(username) {
-            if (tg) {
-                tg.sendData(JSON.stringify({ action: "REMOVE_WATCHLIST", value: username }));
-                tg.close();
-            } else {
-                alert("กรุณาเปิดผ่าน Telegram Mini App ครับ");
-            }
-        }
-
-        setInterval(fetchStatus, 3000);
-        fetchStatus();
-    </script>
+    fetchStatus();
+    setInterval(fetchStatus, 5000); // อัปเดตข้อมูลทุกๆ 5 วินาที
+  </script>
 </body>
 </html>
