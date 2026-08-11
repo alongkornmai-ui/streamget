@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "1118800048",
-      "platform": "BigoLive",
-      "start_timestamp": 1786447763.1955364
-    },
-    {
       "username": "c0505250",
       "platform": "TikTok",
       "start_timestamp": 1786449836.1197646
@@ -91,5 +86,5 @@
     "fernchen_02",
     "donnehkakug"
   ],
-  "total_recordings": 114
+  "total_recordings": 113
 }
