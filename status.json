@@ -21,11 +21,6 @@
       "start_timestamp": 1786459897.0061057
     },
     {
-      "username": "1118800048",
-      "platform": "BigoLive",
-      "start_timestamp": 1786460479.5108824
-    },
-    {
       "username": "pinkpinkrapat",
       "platform": "TikTok",
       "start_timestamp": 1786461851.3476923
@@ -115,5 +110,5 @@
     "fernchen_02",
     "donnehkakug"
   ],
-  "total_recordings": 91
+  "total_recordings": 90
 }
