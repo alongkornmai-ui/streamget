@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "1118800048",
-      "platform": "BigoLive",
-      "start_timestamp": 1786539766.0028386
-    },
-    {
       "username": "hanazyndrome",
       "platform": "TikTok",
       "start_timestamp": 1786542001.5257356
@@ -108,5 +103,5 @@
     "the_greek_goddess",
     "imjuju0927"
   ],
-  "total_recordings": 100
+  "total_recordings": 99
 }
