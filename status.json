@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "1118800048",
-      "platform": "BigoLive",
-      "start_timestamp": 1786616944.1937628
-    },
-    {
       "username": "nhuylee.2000",
       "platform": "TikTok",
       "start_timestamp": 1786622243.5262985
@@ -103,5 +98,5 @@
     "thaibeautynbbyfah",
     "soraya.1997"
   ],
-  "total_recordings": 110
+  "total_recordings": 109
 }
