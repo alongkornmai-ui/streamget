@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "greensiripanphujaroen",
-      "platform": "TikTok",
-      "start_timestamp": 1786654147.3277724
-    },
-    {
       "username": "marusya_431",
       "platform": "TikTok",
       "start_timestamp": 1786655712.3446088
@@ -86,5 +81,5 @@
     "greensiripanphujaroen",
     "marusya_431"
   ],
-  "total_recordings": 99
+  "total_recordings": 98
 }
