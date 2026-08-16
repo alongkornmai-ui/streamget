@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1786921110.062284
-    },
-    {
       "username": "nongrung.wm",
       "platform": "TikTok",
       "start_timestamp": 1786922391.8044827
@@ -95,5 +90,5 @@
     "yaying_0",
     "yura_yura_tnk"
   ],
-  "total_recordings": 204
+  "total_recordings": 203
 }
