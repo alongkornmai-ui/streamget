@@ -19,11 +19,6 @@
       "username": "1118800048",
       "platform": "BigoLive",
       "start_timestamp": 1786955220.3139586
-    },
-    {
-      "username": "u3ser777412",
-      "platform": "TikTok",
-      "start_timestamp": 1786955227.2941625
     }
   ],
   "watchlist": [
@@ -106,5 +101,5 @@
     "yura_yura_tnk",
     "shion_artattoo"
   ],
-  "total_recordings": 257
+  "total_recordings": 256
 }
