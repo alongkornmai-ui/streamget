@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "the_greek_goddess",
-      "platform": "TikTok",
-      "start_timestamp": 1786960310.5999658
-    },
-    {
       "username": "shion_artattoo",
       "platform": "TikTok",
       "start_timestamp": 1786960363.8433723
@@ -91,5 +86,5 @@
     "yura_yura_tnk",
     "shion_artattoo"
   ],
-  "total_recordings": 15
+  "total_recordings": 16
 }
