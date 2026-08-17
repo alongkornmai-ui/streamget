@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "ttworldofficial",
-      "platform": "TikTok",
-      "start_timestamp": 1786935642.5697575
-    },
-    {
       "username": "mongoltsuki",
       "platform": "TikTok",
       "start_timestamp": 1786941753.8333204
@@ -105,5 +100,5 @@
     "yaying_0",
     "yura_yura_tnk"
   ],
-  "total_recordings": 237
+  "total_recordings": 236
 }
