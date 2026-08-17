@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "anawin508",
-      "platform": "TikTok",
-      "start_timestamp": 1786953363.5005991
-    },
-    {
       "username": "shion_artattoo",
       "platform": "TikTok",
       "start_timestamp": 1786953515.0803845
@@ -111,5 +106,5 @@
     "yura_yura_tnk",
     "shion_artattoo"
   ],
-  "total_recordings": 11
+  "total_recordings": 10
 }
