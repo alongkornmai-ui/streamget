@@ -1,11 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1787057455.7979357
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "ja.o.showcase",
     "mongoltsuki",
@@ -84,5 +78,5 @@
     "beune_inin",
     "himeno801"
   ],
-  "total_recordings": 84
+  "total_recordings": 85
 }
