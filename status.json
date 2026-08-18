@@ -1,11 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "c0505250",
-      "platform": "TikTok",
-      "start_timestamp": 1787026190.0280957
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "ja.o.showcase",
     "mongoltsuki",
@@ -84,5 +78,5 @@
     "shion_artattoo",
     "inipinanana"
   ],
-  "total_recordings": 56
+  "total_recordings": 55
 }
