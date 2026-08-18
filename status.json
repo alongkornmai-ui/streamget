@@ -1,19 +1,14 @@
 {
   "active_list": [
     {
-      "username": "pinkpinkrapat",
-      "platform": "TikTok",
-      "start_timestamp": 1786978127.8821054
-    },
-    {
       "username": "mongoltsuki",
       "platform": "TikTok",
-      "start_timestamp": 1787006930.140813
+      "start_timestamp": 1787006851.186345
     },
     {
       "username": "nhuylee.2000",
       "platform": "TikTok",
-      "start_timestamp": 1787012488.624376
+      "start_timestamp": 1787012431.7887745
     }
   ],
   "watchlist": [
@@ -93,5 +88,5 @@
     "yura_yura_tnk",
     "shion_artattoo"
   ],
-  "total_recordings": 55
+  "total_recordings": 54
 }
