@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1787058347.4944067
-    },
-    {
       "username": "ttworldofficial",
       "platform": "TikTok",
       "start_timestamp": 1787060148.7119653
@@ -89,5 +84,5 @@
     "beune_inin",
     "himeno801"
   ],
-  "total_recordings": 88
+  "total_recordings": 89
 }
