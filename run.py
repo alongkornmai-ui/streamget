@@ -83,12 +83,73 @@ async def get_tango_stream_url(url: str):
             res = await client.get(api_url, headers=headers)
             if res.status_code == 200:
                 data = res.json()
-                # ตรวจสอบว่ากำลังสตรีมอยู่หรือไม่
                 if data.get("status") == "LIVE" or "streamUrl" in data:
                     return data.get("streamUrl") or data.get("hlsUrl")
     except Exception:
         pass
     return None
+
+# ─── 🔍 HELPER FUNCTIONS (แก้ไขการคลีนข้อมูลที่นี่) ───
+def extract_display_name(input_str: str, platform: str) -> str:
+    text = str(input_str).strip()
+    
+    # ลบข้อความขยะ/สัญลักษณ์สถานะเดิมออกทั้งหมด
+    text = re.sub(r'^(WAIT|REC|\ \z|\ z\ z\ z|💤|🔴|\[WAIT\]|\[REC\])\s*', '', text, flags=re.IGNORECASE).strip()
+    
+    if platform == "BigoLive":
+        match = re.search(r'(?:user/|bigo:|^)(\d+)', text, re.IGNORECASE)
+        if match: return match.group(1)
+        clean_bigo = text.split('/')[-1].split('?')[0]
+        return re.sub(r'\s*\([^\)]*\)', '', clean_bigo).strip()
+    elif platform == "TikTok":
+        clean_user = text.replace("https://www.tiktok.com/@", "").strip().lstrip('@')
+        clean_user = re.sub(r'\s*\([^\)]*\)', '', clean_user)
+        return clean_user.split('/')[0].split('?')[0].strip()
+    else:
+        parsed = urlparse(text)
+        path = parsed.path.strip('/')
+        if path: 
+            clean_path = path.split('/')[-1].split('?')[0]
+            return re.sub(r'\s*\([^\)]*\)', '', clean_path).strip()
+        return re.sub(r'\s*\([^\)]*\)', '', text).strip()
+
+def get_stream_client_and_url(input_str: str):
+    text = str(input_str).strip()
+    
+    if "tango.me" in text:
+        return "TANGO_API", text, "Tango"
+    elif "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
+        clean_id = text.lower().replace("bigo:", "").strip()
+        target_url = clean_id if clean_id.startswith("http") else f"https://www.bigo.tv/{clean_id}"
+        return BigoLiveStream(), target_url, "BigoLive"
+    elif "douyin.com" in text:
+        return DouyinLiveStream(cookies=MY_COOKIE), text, "Douyin"
+    elif "twitch.tv" in text:
+        return TwitchLiveStream(), text, "Twitch"
+    elif "youtube.com" in text or "youtu.be" in text:
+        return YoutubeLiveStream(), text, "YouTube"
+    elif "kuaishou.com" in text or "kwai.com" in text:
+        return KwaiLiveStream(), text, "Kuaishou"
+    elif "bilibili.com" in text:
+        return BilibiliLiveStream(), text, "Bilibili"
+    else:
+        # คลีนเอาเฉพาะชื่อ username เผื่อมี URL หรือคำขยะติดมา
+        clean_user = extract_display_name(text, "TikTok")
+        target_url = f"https://www.tiktok.com/@{clean_user}/live"
+        return TikTokLiveStream(cookies=MY_COOKIE), target_url, "TikTok"
+
+def load_json_list(filename):
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf-8") as f: 
+                return json.load(f)
+        except Exception: return []
+    return []
+
+def save_json_list(filename, data):
+    with open(filename, "w", encoding="utf-8") as f: 
+        json.dump(data, f, indent=4, ensure_ascii=False)
+    sync_status_to_github()
 
 # ─── 🔄 GITHUB AUTO-SYNC FUNCTION ───
 def sync_status_to_github():
@@ -99,7 +160,7 @@ def sync_status_to_github():
         for item in watchlist_raw:
             _, _, platform = get_stream_client_and_url(item)
             short_name = extract_display_name(item, platform)
-            formatted_watchlist.append(short_name)
+            formatted_watchlist.append(f"{short_name} ({platform})")
 
         active_list = []
         for key, info in list(active_records_info.items()):
@@ -127,20 +188,6 @@ def sync_status_to_github():
         subprocess.run(["git", "push", "origin", "main"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
         pass
-
-# ─── 🔍 HELPER FUNCTIONS ───
-def load_json_list(filename):
-    if os.path.exists(filename):
-        try:
-            with open(filename, "r", encoding="utf-8") as f: 
-                return json.load(f)
-        except Exception: return []
-    return []
-
-def save_json_list(filename, data):
-    with open(filename, "w", encoding="utf-8") as f: 
-        json.dump(data, f, indent=4, ensure_ascii=False)
-    sync_status_to_github()
 
 def format_duration(seconds):
     m, s = divmod(int(seconds), 60)
@@ -195,45 +242,6 @@ def generate_sample_grid(video_path, output_grid_path, num_samples=12):
         return True
     except Exception:
         return False
-
-def extract_display_name(input_str: str, platform: str) -> str:
-    text = str(input_str).strip()
-    if platform == "BigoLive":
-        match = re.search(r'(?:user/|bigo:|^)(\d+)', text, re.IGNORECASE)
-        if match: return match.group(1)
-        return text.split('/')[-1].split('?')[0]
-    elif platform == "TikTok":
-        clean_user = text.replace("https://www.tiktok.com/@", "").strip().lstrip('@')
-        return clean_user.split('/')[0].split('?')[0]
-    else:
-        parsed = urlparse(text)
-        path = parsed.path.strip('/')
-        if path: return path.split('/')[-1].split('?')[0]
-        return text
-
-def get_stream_client_and_url(input_str: str):
-    text = str(input_str).strip()
-    
-    if "tango.me" in text:
-        return "TANGO_API", text, "Tango"
-    elif "bigo.tv" in text or "bigo.sg" in text or text.lower().startswith("bigo:"):
-        clean_id = text.lower().replace("bigo:", "").strip()
-        target_url = clean_id if clean_id.startswith("http") else f"https://www.bigo.tv/{clean_id}"
-        return BigoLiveStream(), target_url, "BigoLive"
-    elif "douyin.com" in text:
-        return DouyinLiveStream(cookies=MY_COOKIE), text, "Douyin"
-    elif "twitch.tv" in text:
-        return TwitchLiveStream(), text, "Twitch"
-    elif "youtube.com" in text or "youtu.be" in text:
-        return YoutubeLiveStream(), text, "YouTube"
-    elif "kuaishou.com" in text or "kwai.com" in text:
-        return KwaiLiveStream(), text, "Kuaishou"
-    elif "bilibili.com" in text:
-        return BilibiliLiveStream(), text, "Bilibili"
-    else:
-        clean_user = text.replace("https://www.tiktok.com/@", "").strip().lstrip('@')
-        target_url = f"https://www.tiktok.com/@{clean_user}/live"
-        return TikTokLiveStream(cookies=MY_COOKIE), target_url, "TikTok"
 
 # ─── 🖥️ TERMUX TERMINAL HUD LOOP ───
 async def termux_hud_loop():
@@ -324,7 +332,6 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
     try:
         stream_url = None
         
-        # 📌 เช็กเฉพาะของ Tango ผ่าน API
         if stream_client == "TANGO_API":
             stream_url = await get_tango_stream_url(target_url)
         else:
@@ -341,7 +348,6 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
                 "start_str": start_time_str
             }
             sync_status_to_github()
-
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             clean_name = re.sub(r'[^\w\-]', '_', short_name)
             output_file = os.path.join(OUTPUT_DIR, f"{platform_name}_{clean_name}_{timestamp}.mp4")
@@ -353,7 +359,6 @@ async def monitor_tt_task(application: Application, chat_id: int, input_item: st
                     parse_mode='Markdown'
                 )
 
-            # ใช้ FFmpeg อัดลิงก์สดโดยตรง
             cmd = f'ffmpeg -i "{stream_url}" -c copy -y "{output_file}"'
             process = await asyncio.create_subprocess_shell(cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             active_processes[key] = process
@@ -500,10 +505,16 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if action == 'waiting_for_add_tt':
         wl = load_json_list(TT_WATCHLIST_FILE)
-        if raw_text not in wl:
-            wl.append(raw_text)
+        # ทำการคลีนชื่อก่อนบันทึกลง Watchlist
+        _, _, platform = get_stream_client_and_url(raw_text)
+        clean_entry = extract_display_name(raw_text, platform)
+        
+        if clean_entry not in wl:
+            wl.append(clean_entry)
             save_json_list(TT_WATCHLIST_FILE, wl)
-            await update.message.reply_text(f"✅ เพิ่มเรียบร้อยแล้ว!", parse_mode='Markdown')
+            await update.message.reply_text(f"✅ เพิ่มเรียบร้อยแล้ว: `{clean_entry}`", parse_mode='Markdown')
+        else:
+            await update.message.reply_text(f"⚠️ มีช่องนี้อยู่ในรายการแล้ว", parse_mode='Markdown')
         context.user_data['action'] = None
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
