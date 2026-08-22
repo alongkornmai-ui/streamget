@@ -1,5 +1,11 @@
 {
-  "active_list": [],
+  "active_list": [
+    {
+      "username": "watabokuxoxo",
+      "platform": "TikTok",
+      "start_timestamp": 1787432181.9574237
+    }
+  ],
   "watchlist": [
     "ja.o.showcase (TikTok)",
     "mongoltsuki (TikTok)",
@@ -102,5 +108,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 172
+  "total_recordings": 171
 }
