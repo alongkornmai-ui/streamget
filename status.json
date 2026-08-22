@@ -1,21 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "nana.inusuki",
-      "platform": "TikTok",
-      "start_timestamp": 1787390286.294478
-    },
-    {
-      "username": "shion_artattoo",
-      "platform": "TikTok",
-      "start_timestamp": 1787393492.35055
-    },
-    {
-      "username": "patdarin",
-      "platform": "BigoLive",
-      "start_timestamp": 1787393685.0381248
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "ja.o.showcase (TikTok)",
     "mongoltsuki (TikTok)",
@@ -118,5 +102,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 101
+  "total_recordings": 100
 }
