@@ -1,5 +1,16 @@
 {
-  "active_list": [],
+  "active_list": [
+    {
+      "username": "nana.inusuki",
+      "platform": "TikTok",
+      "start_timestamp": 1787395592.2898896
+    },
+    {
+      "username": "himeno801",
+      "platform": "TikTok",
+      "start_timestamp": 1787408528.3944826
+    }
+  ],
   "watchlist": [
     "ja.o.showcase (TikTok)",
     "mongoltsuki (TikTok)",
@@ -102,5 +113,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 127
+  "total_recordings": 128
 }
