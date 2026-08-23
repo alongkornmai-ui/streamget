@@ -1,14 +1,14 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1787471422.4519126
-    },
-    {
       "username": "adrianasabd",
       "platform": "TikTok",
-      "start_timestamp": 1787473129.1845694
+      "start_timestamp": 1787473053.8630478
+    },
+    {
+      "username": "mongoltsuki",
+      "platform": "TikTok",
+      "start_timestamp": 1787473111.10448
     }
   ],
   "watchlist": [
@@ -113,5 +113,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 144
+  "total_recordings": 145
 }
