@@ -1,9 +1,14 @@
 {
   "active_list": [
     {
+      "username": "karolguerra130",
+      "platform": "TikTok",
+      "start_timestamp": 1787468082.1501377
+    },
+    {
       "username": "patdarin",
       "platform": "BigoLive",
-      "start_timestamp": 1787468104.77974
+      "start_timestamp": 1787468096.154413
     }
   ],
   "watchlist": [
@@ -108,5 +113,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 132
+  "total_recordings": 133
 }
