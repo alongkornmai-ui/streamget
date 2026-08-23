@@ -3,7 +3,12 @@
     {
       "username": "patdarin",
       "platform": "BigoLive",
-      "start_timestamp": 1787468104.77974
+      "start_timestamp": 1787468096.154413
+    },
+    {
+      "username": "adrianasabd",
+      "platform": "TikTok",
+      "start_timestamp": 1787468418.800616
     }
   ],
   "watchlist": [
@@ -108,5 +113,5 @@
     "atene26 (TikTok)",
     "hanathuy22 (TikTok)"
   ],
-  "total_recordings": 135
+  "total_recordings": 136
 }
