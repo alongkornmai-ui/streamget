@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1787739434.5615916
-    },
-    {
       "username": "pupuyong",
       "platform": "TikTok",
       "start_timestamp": 1787754116.700955
@@ -113,5 +108,5 @@
     "jin_melon (TikTok)",
     "anda.thannari (TikTok)"
   ],
-  "total_recordings": 209
+  "total_recordings": 208
 }
