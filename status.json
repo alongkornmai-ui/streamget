@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "jin_melon",
-      "platform": "TikTok",
-      "start_timestamp": 1787934415.4262056
-    },
-    {
       "username": "noeywhan_88",
       "platform": "TikTok",
       "start_timestamp": 1787934418.4650185
@@ -112,5 +107,5 @@
     "noeywhan_88 (TikTok)",
     "error_404_brain__ (TikTok)"
   ],
-  "total_recordings": 283
+  "total_recordings": 284
 }
