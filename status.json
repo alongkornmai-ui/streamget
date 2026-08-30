@@ -1,19 +1,14 @@
 {
   "active_list": [
     {
-      "username": "jin_melon",
+      "username": "nhuylee.2000",
       "platform": "TikTok",
-      "start_timestamp": 1788062230.3413153
+      "start_timestamp": 1788060927.3429515
     },
     {
       "username": "nana34383",
       "platform": "TikTok",
-      "start_timestamp": 1788062266.372216
-    },
-    {
-      "username": "nhuylee.2000",
-      "platform": "TikTok",
-      "start_timestamp": 1788062273.289615
+      "start_timestamp": 1788062301.7256787
     }
   ],
   "watchlist": [
@@ -117,5 +112,5 @@
     "error_404_brain__ (TikTok)",
     "urfavvhoang (TikTok)"
   ],
-  "total_recordings": 77
+  "total_recordings": 78
 }
