@@ -1,11 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "user1176931281612",
-      "platform": "TikTok",
-      "start_timestamp": 1788135749.2684655
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "mongoltsuki (TikTok)",
     "cannachristiana (TikTok)",
@@ -107,5 +101,5 @@
     "error_404_brain__ (TikTok)",
     "urfavvhoang (TikTok)"
   ],
-  "total_recordings": 116
+  "total_recordings": 115
 }
