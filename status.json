@@ -1,11 +1,6 @@
 {
   "active_list": [
     {
-      "username": "mongoltsuki",
-      "platform": "TikTok",
-      "start_timestamp": 1788216122.8126915
-    },
-    {
       "username": "greensiripanphujaroen",
       "platform": "TikTok",
       "start_timestamp": 1788218208.314092
@@ -115,5 +110,5 @@
     "error_404_brain__ (TikTok)",
     "urfavvhoang (TikTok)"
   ],
-  "total_recordings": 90
+  "total_recordings": 89
 }
