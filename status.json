@@ -1,16 +1,5 @@
 {
-  "active_list": [
-    {
-      "username": "momay_siriwan",
-      "platform": "TikTok",
-      "start_timestamp": 1788635603.7710824
-    },
-    {
-      "username": "error_404_brain__",
-      "platform": "TikTok",
-      "start_timestamp": 1788635622.0101137
-    }
-  ],
+  "active_list": [],
   "watchlist": [
     "cannachristiana (TikTok)",
     "film7395 (TikTok)",
@@ -111,5 +100,6 @@
     "dung.nguyn483 (TikTok)",
     "tsukinokamiya (TikTok)"
   ],
-  "total_recordings": 94
+  "total_recordings": 96,
+  "last_updated": "2026-09-06 03:16:02"
 }
